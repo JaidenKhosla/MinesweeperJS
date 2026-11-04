@@ -2,6 +2,8 @@ import './style.css'
 import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
+import { getNSeededColors } from './Utils';
+
 const loadImage = (image_path: string) => {
     const img = new Image();
     img.src = image_path;
@@ -9,7 +11,6 @@ const loadImage = (image_path: string) => {
 }
 
 const FLAG_IMAGE_ASSET = loadImage("./assets/flag.png");
-const MINE_IMAGE_ASSET = loadImage("./assets/mine.png");
 const X_IMAGE_ASSET = loadImage("./assets/x.png");
 
 const MINE_BODY_ASSET = loadImage("./assets/mineBody.png");
@@ -22,6 +23,7 @@ class GUI
     overlay: HTMLCanvasElement = document.getElementById("overlay")! as HTMLCanvasElement;
 
     ctx: CanvasRenderingContext2D = this.board.getContext("2d")!;
+    overlayCtx: CanvasRenderingContext2D = this.overlay.getContext("2d")!;
 
     mineCounterLabel: HTMLParagraphElement = document.getElementById("mineCount")! as HTMLParagraphElement;
     timerLabel: HTMLParagraphElement = document.getElementById("timer")! as HTMLParagraphElement;
@@ -33,10 +35,12 @@ class GUI
     engine: GameEngine;
     
     cellSize: number;
-
     labelEvent: number = -1;
+    abortController: AbortController;
 
-    abortController: AbortController
+
+    mineColorSeed: number = Math.random() * Number.MAX_SAFE_INTEGER;
+    mineColors: number[];
 
     constructor(difficulty?: Difficulty)
     {
@@ -55,6 +59,8 @@ class GUI
         this.cellSize = (boundingBox.width/this.engine.cols);
         this.ctx.font = `bold ${this.board.width/boundingBox.width*10}px sans-serif`;
 
+        this.mineColors = getNSeededColors(this.mineColorSeed, this.engine.maxMines);
+
         window.addEventListener("resize", ()=>{
             
             const boundingBox = this.board.getBoundingClientRect();
@@ -65,7 +71,6 @@ class GUI
             this.overlay.width = boundingBox.width;
             this.overlay.height = boundingBox.height;
 
-            // this.cellSize = Math.floor(Math.min(boundingBox.width/this.engine.cols, boundingBox.height/this.engine.rows));
             this.cellSize = (boundingBox.width/this.engine.cols);
 
             if(this.engine.gameOver)
@@ -80,7 +85,6 @@ class GUI
             if(this.engine.gameOver) return
             
             const rect = this.board.getBoundingClientRect();
-            // const overlayRect = this.overlay.getBoundingClientRect();
 
             const c = Math.floor((e.clientX - rect.left)/this.cellSize);
             const r = Math.floor((e.clientY - rect.top)/this.cellSize);
@@ -157,23 +161,17 @@ class GUI
         
         this.updateLabels(0);
         this.timerLabel.innerText = "0";
-        // this.updateLabels(1);
     }
 
     private step([c, r]: [number, number], teether: boolean = false)
     {
-        // console.log("draw");
 
         const res = teether ? this.engine.getStatus() : this.engine.step([c, r]);
-        // console.log("execute step");
         if (this.labelEvent === -1 && this.engine.getStatus() !== Status.UNSTARTED)
         {
             this.labelEvent = setInterval(()=>this.updateLabels(1), 10);
         }
         
-
-        // console.log(`Res: ${res} Won: ${this.engine.prewin} Game Over: ${this.engine.gameOver} Teether: ${teether}`)
-
         if(res === Status.LOST)
             this.blowup([c, r]);
         else if(res == Status.WON || res === Status.ONGOING)
@@ -191,6 +189,9 @@ class GUI
     private erase(): void
     {
         this.ctx.clearRect(0, 0, this.board.width, this.board.height);
+        const overlayCtx = this.overlay.getContext("2d")!;
+
+        overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
     }
 
     public cleanUp(): void
@@ -354,6 +355,8 @@ class GUI
 
             }
         }
+
+        if(this.engine.gameOver) this.darken();
     }
 
     private teetherClick(e: MouseEvent, preview: boolean = false)
@@ -393,6 +396,14 @@ class GUI
         this.step([c, r], true);
     }
 
+    darken()
+    {
+        const overlayCtx = this.overlay.getContext("2d")!;
+        overlayCtx.fillStyle = "rgba(74, 73, 73, 0.82)";
+        overlayCtx.fillRect(0,0, this.cellSize * this.engine.cols, this.cellSize * this.engine.rows);
+
+    }
+
     showScoreboard()
     {
         
@@ -401,11 +412,7 @@ class GUI
         const redoParagraph: HTMLParagraphElement = document.getElementById("redopara")! as HTMLParagraphElement;
 
 
-
-        const overlayCtx = this.overlay.getContext("2d")!;
-
-        overlayCtx.fillStyle = "rgba(74, 73, 73, 0.82)";
-        overlayCtx.fillRect(0,0, this.cellSize * this.engine.cols, this.cellSize * this.engine.rows);
+        this.darken();
 
         this.scoreboard.classList.remove("hidden");
         this.scoreboard.classList.add("shown");
