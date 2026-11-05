@@ -2,7 +2,7 @@ import './style.css'
 import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
-import { getNSeededColors } from './Utils';
+import { getNColors } from './Utils';
 
 const loadImage = (image_path: string) => {
     const img = new Image();
@@ -39,8 +39,7 @@ class GUI
     abortController: AbortController;
 
 
-    mineColorSeed: number = Math.random() * Number.MAX_SAFE_INTEGER;
-    mineColors: number[];
+    mineColors: number[][];
 
     constructor(difficulty?: Difficulty)
     {
@@ -59,7 +58,7 @@ class GUI
         this.cellSize = (boundingBox.width/this.engine.cols);
         this.ctx.font = `bold ${this.board.width/boundingBox.width*10}px sans-serif`;
 
-        this.mineColors = getNSeededColors(this.mineColorSeed, this.engine.maxMines);
+        this.mineColors = getNColors(this.engine.cols * this.engine.rows);
 
         window.addEventListener("resize", ()=>{
             
@@ -76,7 +75,7 @@ class GUI
             if(this.engine.gameOver)
                 this.showScoreboard();
             
-            this.erase();
+            this.erase(false);
             this.draw();
         }, { signal: this.abortController.signal})
 
@@ -174,7 +173,7 @@ class GUI
         
         if(res === Status.LOST)
             this.blowup([c, r]);
-        else if(res == Status.WON || res === Status.ONGOING)
+        else if(res === Status.WON || res === Status.ONGOING)
         {
             this.erase();
             this.draw();
@@ -186,12 +185,15 @@ class GUI
         }
     }
     
-    private erase(): void
+    private erase(eraseOverlay: boolean = true): void
     {
         this.ctx.clearRect(0, 0, this.board.width, this.board.height);
-        const overlayCtx = this.overlay.getContext("2d")!;
-
-        overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+        
+        if(eraseOverlay)
+        {
+            // const overlayCtx = this.overlay.getContext("2d")!;
+            this.overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+        }
     }
 
     public cleanUp(): void
@@ -248,15 +250,14 @@ class GUI
             this.ctx.drawImage(X_IMAGE_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
         else
         {
-            const overlayCtx = this.overlay.getContext("2d")!;
 
-            overlayCtx.clearRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
-            overlayCtx.drawImage(MINE_BODY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            this.overlayCtx.clearRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            this.overlayCtx.drawImage(MINE_BODY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
             
-            const imageData = overlayCtx.getImageData(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            const imageData = this.overlayCtx.getImageData(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
             const { data : dataBuffer } = imageData;
 
-            const COLOR = [0,0,0].map(e=>Math.floor(256 * Math.random()));
+            const COLOR = this.mineColors[y*this.engine.rows + x];
 
             for(let i = 0; i < dataBuffer.length; i+=4)
             {
@@ -272,9 +273,9 @@ class GUI
                 dataBuffer[i+2] = COLOR[2];
             }
 
-            overlayCtx.putImageData(imageData, x * this.cellSize, y * this.cellSize);
+            this.overlayCtx.putImageData(imageData, x * this.cellSize, y * this.cellSize);
 
-            overlayCtx.drawImage(MINE_OVERLAY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+            this.overlayCtx.drawImage(MINE_OVERLAY_ASSET, x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
         }
     }
 
@@ -355,8 +356,6 @@ class GUI
 
             }
         }
-
-        if(this.engine.gameOver) this.darken();
     }
 
     private teetherClick(e: MouseEvent, preview: boolean = false)
@@ -373,8 +372,8 @@ class GUI
         const highlightedCells = this.engine.teether([c, r], preview);
 
         // console.log(JSON.stringify(highlightedCells));
-        const overlayCtx = this.overlay.getContext("2d")!;
-        overlayCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        // const overlayCtx = this.overlay.getContext("2d")!;
+        this.overlayCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
 
         //2, 5
 
@@ -382,14 +381,14 @@ class GUI
 
         for(const [cx, cy] of highlightedCells)
         {   
-            overlayCtx.fillRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
+            this.overlayCtx.fillRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
             
             
         }
         
         window.addEventListener("mouseup", ()=>{
             for(const [cx, cy] of highlightedCells)
-                overlayCtx.clearRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
+               this.overlayCtx.clearRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
             holdClickAbortController.abort();
         }, { signal: holdClickAbortController.signal});
         
@@ -398,9 +397,9 @@ class GUI
 
     darken()
     {
-        const overlayCtx = this.overlay.getContext("2d")!;
-        overlayCtx.fillStyle = "rgba(74, 73, 73, 0.82)";
-        overlayCtx.fillRect(0,0, this.cellSize * this.engine.cols, this.cellSize * this.engine.rows);
+        // const overlayCtx = this.overlay.getContext("2d")!;
+        this.overlayCtx.fillStyle = "rgba(74, 73, 73, 0.82)";
+        this.overlayCtx.fillRect(0,0, this.cellSize * this.engine.cols, this.cellSize * this.engine.rows);
 
     }
 

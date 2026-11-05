@@ -42,7 +42,7 @@ const FONT_COLORS = [
 export type Difficulty = "EASY" | "MEDIUM" | "HARD";
 
 const DIFFICULTY_DIMENSIONS = {
-    "EASY" : [10, 6, 10],
+    "EASY" : [10, 8, 10],
     "MEDIUM" : [18, 14, 40],
     "HARD" : [24, 20, 99]
 }
