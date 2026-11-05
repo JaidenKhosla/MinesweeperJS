@@ -72,11 +72,12 @@ class GUI
 
             this.cellSize = (boundingBox.width/this.engine.cols);
 
-            if(this.engine.gameOver)
-                this.showScoreboard();
-            
             this.erase(false);
             this.draw();
+        
+            if(this.engine.gameOver)
+                this.showScoreboard();
+
         }, { signal: this.abortController.signal})
 
         this.overlay.addEventListener("mousemove", (e) =>
@@ -114,8 +115,6 @@ class GUI
 
             if(this.engine.gameOver || e.button === 1) return;
 
-            console.log("click");
-
             const rect = this.board.getBoundingClientRect();
 
             const c = Math.floor((e.clientX - rect.left)/this.cellSize);
@@ -129,10 +128,15 @@ class GUI
         this.overlay.addEventListener("dblclick", (e)=>this.teetherClick(e), { signal: this.abortController.signal});
         this.overlay.addEventListener("mousedown", (e)=>{
 
-            
+            const rect = this.board.getBoundingClientRect();
+
+            const c = Math.floor((e.clientX - rect.left)/this.cellSize);
+            const r = Math.floor((e.clientY - rect.top)/this.cellSize);
+
+            // this.registerHighlight([c, r]);
+
             if(e.button === 1)
-            {
-                    
+            {       
                 e.preventDefault();
                 this.teetherClick(e);
             }
@@ -152,7 +156,7 @@ class GUI
 
             this.engine.toggleFlag([c, r]);
 
-            this.erase();
+            this.erase(false);
             this.draw();
 
             this.updateLabels(0);
@@ -161,6 +165,7 @@ class GUI
         this.updateLabels(0);
         this.timerLabel.innerText = "0";
     }
+
 
     private step([c, r]: [number, number], teether: boolean = false)
     {
@@ -175,7 +180,7 @@ class GUI
             this.blowup([c, r]);
         else if(res === Status.WON || res === Status.ONGOING)
         {
-            this.erase();
+            this.erase(res === Status.WON);
             this.draw();
 
             if(res === Status.WON)
@@ -387,8 +392,9 @@ class GUI
         }
         
         window.addEventListener("mouseup", ()=>{
-            for(const [cx, cy] of highlightedCells)
-               this.overlayCtx.clearRect(cx * this.cellSize, cy * this.cellSize, this.cellSize, this.cellSize);
+
+            this.overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+
             holdClickAbortController.abort();
         }, { signal: holdClickAbortController.signal});
         
