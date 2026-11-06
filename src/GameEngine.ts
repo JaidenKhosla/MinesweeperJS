@@ -52,7 +52,7 @@ export default class GameEngine
     rows: number;
     cols: number;
     maxMines: number;
-    started: boolean;
+    started: boolean = false;
     difficulty: Difficulty;
 
     mines: [number, number][];
@@ -234,7 +234,10 @@ export default class GameEngine
 
     public toggleFlag([x, y]: [number, number])
     {
-        if(!this.started) return;
+        // console.log("toggle");
+        // console.log(`TOGGLE: ${JSON.stringify([x, y])}`);
+
+        if(this.getStatus() === Status.UNSTARTED) return;
 
         if(this.board[y][x] & Cell.IS_REVEALED)
             return;
@@ -283,6 +286,16 @@ export default class GameEngine
     public flagsLeft(): number
     {
         return this.maxMines - this.flagsUsed;
+    }
+
+    public isRevealed([c, r]: [number, number])
+    {
+        return (this.board[r][c] & Cell.IS_REVEALED) === Cell.IS_REVEALED;
+    }
+    
+    public isFlagged([c, r]: [number, number])
+    {
+        return (this.board[r][c] & Cell.IS_FLAGGED) === Cell.IS_FLAGGED;
     }
 
     public hasWon(): boolean

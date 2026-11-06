@@ -3,6 +3,7 @@ import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
 import { getNColors } from './Utils';
+import Solver from './Solver';
 
 const loadImage = (image_path: string) => {
     const img = new Image();
@@ -17,7 +18,7 @@ const MINE_BODY_ASSET = loadImage("./assets/mineBody.png");
 const MINE_OVERLAY_ASSET = loadImage("./assets/mineOverlay.png");
 
 
-class GUI
+export class GUI
 {
     board: HTMLCanvasElement = document.getElementById("board")! as HTMLCanvasElement;
     overlay: HTMLCanvasElement = document.getElementById("overlay")! as HTMLCanvasElement;
@@ -128,13 +129,6 @@ class GUI
         this.overlay.addEventListener("dblclick", (e)=>this.teetherClick(e), { signal: this.abortController.signal});
         this.overlay.addEventListener("mousedown", (e)=>{
 
-            const rect = this.board.getBoundingClientRect();
-
-            const c = Math.floor((e.clientX - rect.left)/this.cellSize);
-            const r = Math.floor((e.clientY - rect.top)/this.cellSize);
-
-            // this.registerHighlight([c, r]);
-
             if(e.button === 1)
             {       
                 e.preventDefault();
@@ -167,7 +161,7 @@ class GUI
     }
 
 
-    private step([c, r]: [number, number], teether: boolean = false)
+    step([c, r]: [number, number], teether: boolean = false)
     {
 
         const res = teether ? this.engine.getStatus() : this.engine.step([c, r]);
@@ -190,7 +184,7 @@ class GUI
         }
     }
     
-    private erase(eraseOverlay: boolean = true): void
+    erase(eraseOverlay: boolean = true): void
     {
         this.ctx.clearRect(0, 0, this.board.width, this.board.height);
         
@@ -451,7 +445,22 @@ const restart = () => {
     gui.draw();
 }
 
-
 redoBtn.onclick = restart;
 
 difficultySelection.addEventListener("change", restart);
+
+const solverBtn = document.getElementById("solver")!;
+
+solverBtn.onclick = () =>
+{
+    // console.log(JSON.stringify(gui.engine));
+    const solver = new Solver(gui.engine);
+
+    solver.solveStep(gui);
+
+    gui.erase(false);
+    gui.draw()
+    
+    gui.updateLabels(0);
+    gui.updateLabels(1);
+}
