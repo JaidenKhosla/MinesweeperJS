@@ -39,6 +39,44 @@ export default class Solver
         
         const constraints: Constraint[] = [];
 
+        let changed = false;
+
+        do
+        {
+            changed = false;
+            for(let cell = 0; cell < this.engine.rows * this.engine.cols; cell++)
+            {
+                const r = Math.floor(cell/this.engine.cols);
+                const c = cell%this.engine.cols;
+    
+                if((this.engine.board[r][c] & Cell.IS_REVEALED) == 0) continue;
+                
+                const mineNumber = this.engine.getMines([c, r]);
+    
+                const knownMines = this.getFlaggedCells([c, r]) as [number, number][];
+                
+                const potentialMines = this.getUnrevealedCells([c, r]) as [number, number][];
+    
+                const minesLeft = mineNumber-knownMines.length;
+    
+                // console.log(`[${c}, ${r}] : PotentialMines = ${JSON.stringify(potentialMines)} minesLeft = ${minesLeft} knownMines=${JSON.stringify(knownMines)}`);
+                if(potentialMines.length === 0) continue;
+
+                if(minesLeft === potentialMines.length)
+                {
+                    // console.log("FLAG ALL");
+                    potentialMines.forEach(coords=> gui.engine.toggleFlag(coords));
+                    changed = true;
+                }
+                else if(minesLeft === 0)
+                {
+                    potentialMines.forEach(coords=> gui.step(coords));
+                    changed = true;
+                }
+            }
+        } while(changed);
+
+
         for(let cell = 0; cell < this.engine.rows * this.engine.cols; cell++)
         {
             const r = Math.floor(cell/this.engine.cols);
@@ -54,25 +92,9 @@ export default class Solver
 
             const minesLeft = mineNumber-knownMines.length;
 
-            // console.log(`[${c}, ${r}] : PotentialMines = ${JSON.stringify(potentialMines)} minesLeft = ${minesLeft} knownMines=${JSON.stringify(knownMines)}`);
-
-            if(minesLeft === potentialMines.length)
-            {
-                // console.log("FLAG ALL");
-                potentialMines.forEach(coords=> gui.engine.toggleFlag(coords));
-            }
-            else if(minesLeft === 0)
-            {
-                potentialMines.forEach(coords=> gui.step(coords));
-            }
-            else
-            {
-                // console.log(`ADDING: ${JSON.stringify((new Set<number>(potentialMines.map(compress))).size)}`);
-                constraints.push({ remaining: minesLeft, unrevealed: new Set<number>(potentialMines.map(compress))});
-                // console.log(constraints[constraints.length - 1].unrevealed.entries());
-            }
+            if(minesLeft !== 0) constraints.push({ remaining: minesLeft, unrevealed: new Set<number>(potentialMines.map(compress))});
         }
-
+        
         const stringify = (a: any) => {
             return JSON.stringify(a, (_key, value) => (value instanceof Set ? [...value] : value));
         }
