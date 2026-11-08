@@ -1,7 +1,6 @@
 import type GameEngine from "./GameEngine";
 import { Cell } from "./GameEngine";
 import type { GUI } from "./main";
-import Queue from "./Queue";
 
 type Constraint = {
     remaining: number,

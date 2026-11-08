@@ -3,7 +3,6 @@ import GameEngine, { Scoreboard, Color, Cell, Status } from './GameEngine';
 import type { Difficulty } from './GameEngine';
 
 import { getNColors } from './Utils';
-import Solver from './Solver';
 
 const loadImage = (image_path: string) => {
     const img = new Image();
@@ -66,6 +65,8 @@ export class GUI
 
         window.addEventListener("resize", ()=>{
             
+            this.animationPlaying = false;
+
             const boundingBox = this.board.getBoundingClientRect();
             
             this.board.width = boundingBox.width;
