@@ -99,30 +99,36 @@ export default class Solver
             return JSON.stringify(a, (_key, value) => (value instanceof Set ? [...value] : value));
         }
 
-        constraints.sort((a,b)=> b.remaining - a.remaining);
-
         console.log(stringify(constraints));
 
         for(let i = 0; i < constraints.length; i++)
         {
-            for(let j = i+1; j < constraints.length; j++)
+            for(let j = 0; j < constraints.length; j++)
             {
+                if(i === j) continue;
+
                 const constraintB = constraints[i];
                 const constraintA = constraints[j];
 
                 console.log(`A(${i}): ${stringify(constraintA)} B(${j}): ${stringify(constraintB)}`);
 
-                if(![...constraintB.unrevealed].every(k=>constraintA.unrevealed.has(k))) continue;
+                if([...constraintB.unrevealed].every(k=>constraintA.unrevealed.has(k)))
+                {
+                    console.log("A SUBSET B");
+    
+                    const minesLeft = constraintA.remaining - constraintB.remaining;
+                    const uncheckedMines = [...constraintA.unrevealed].filter(k=>!constraintB.unrevealed.has(k)).map(expand) as [number, number][];
+    
+                    console.log(`MINES LEFT: ${minesLeft} uncheckedMines: ${JSON.stringify(uncheckedMines)}`);
+    
+                    if(minesLeft === 0) uncheckedMines.forEach(coords=> gui.step(coords));
+                    else if(minesLeft === uncheckedMines.length) uncheckedMines.forEach(coords=> gui.engine.toggleFlag(coords)); 
+                }
+                else if([...constraintB.unrevealed].some(k=>constraintA.unrevealed.has(k)))
+                {
 
-                console.log("A SUBSET B");
+                }
 
-                const minesLeft = constraintB.remaining - constraintA.remaining;
-                const uncheckedMines = [...constraintA.unrevealed].filter(k=>!constraintB.unrevealed.has(k)).map(expand) as [number, number][];
-
-                console.log(`MINES LEFT: ${minesLeft} uncheckedMines: ${JSON.stringify(uncheckedMines)}`);
-
-                if(minesLeft === 0) uncheckedMines.forEach(coords=> gui.step(coords));
-                else if(minesLeft === uncheckedMines.length) uncheckedMines.forEach(coords=> gui.engine.toggleFlag(coords)); 
             }
         }
 

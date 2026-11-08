@@ -125,7 +125,7 @@ body
 
 #scoreboard > span > div > img 
 {
-  width: 30%;
+  width: 50%;
 }
 
 #scoreboard > span > div
@@ -139,7 +139,7 @@ body
 
   font-size: 2vw;
   color: white;
-  font-weight: bolder;
+  font-weight: 900;
 }
 
 #scoreboard > button

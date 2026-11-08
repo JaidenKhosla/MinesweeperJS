@@ -42,6 +42,9 @@ export class GUI
 
     mineColors: number[][];
 
+    animationPlaying: boolean = false;
+    animationID: number = -1;
+
     constructor(difficulty?: Difficulty)
     {
         this.abortController = new AbortController();
@@ -114,7 +117,15 @@ export class GUI
 
         this.overlay.addEventListener("click", (e) => {
 
-            if(this.engine.gameOver || e.button === 1) return;
+            if(this.engine.gameOver || e.button === 1)
+            {
+                if(this.animationPlaying)
+                {
+                    this.animationPlaying = false;
+                    this.showScoreboard();
+                }
+                return;
+            }
 
             const rect = this.board.getBoundingClientRect();
 
@@ -222,11 +233,17 @@ export class GUI
 
         let i = 0;
 
+        this.animationPlaying = true;
+        
         const interval = setInterval(()=>{
-            if(i >= minesAndFlags.length)
+            if(i >= minesAndFlags.length || !this.animationPlaying)
             {
                 clearInterval(interval);
-                this.showScoreboard();
+
+                if(this.animationPlaying)
+                    this.showScoreboard();
+
+                this.animationPlaying = false;
                 return;
             }
 
@@ -234,7 +251,6 @@ export class GUI
 
             
             this.engine.board[mY][mX] |= Cell.IS_REVEALED;
-            
             this.ctx.fillStyle = this.engine.getBackgroundColor([mX, mY]);
             this.ctx.fillRect(mX * this.cellSize, mY * this.cellSize, this.cellSize, this.cellSize);
 
@@ -285,12 +301,17 @@ export class GUI
         
         let i = 0;
 
+        this.animationPlaying = true;
         const interval = setInterval(() => {
-            if(i >= cells.length)
+            if(i >= cells.length || !this.animationPlaying)
             {
                 clearInterval(interval);
                 this.engine.won = true;
-                this.showScoreboard();
+
+                if(this.animationPlaying)
+                    this.showScoreboard();
+                
+                this.animationPlaying = false;
                 return;
             }
 
@@ -418,7 +439,7 @@ export class GUI
 
         redoParagraph.innerText = this.engine.getStatus() === Status.WON ? "Play Again" : "Try Again"
         
-        this.currentTimeScoreboardLabel.innerText = this.engine.won ? this.engine.getTimeElapsed().toString() : "---";
+        this.currentTimeScoreboardLabel.innerText = this.engine.getStatus() === Status.WON ? this.engine.getTimeElapsed().toString() : "---";
         this.bestTimeScoreboardLabel.innerText = `${Scoreboard.getBestTime(this.engine.difficulty) ?? "---"}`;
     }
 }
@@ -439,6 +460,7 @@ const restart = () => {
     const difficulty: Difficulty = difficultySelection.options[difficultySelection.selectedIndex].value.toUpperCase() as Difficulty;
 
     gui.cleanUp();
+    gui.animationPlaying = false;
 
     gui = new GUI(difficulty);
 
@@ -449,18 +471,18 @@ redoBtn.onclick = restart;
 
 difficultySelection.addEventListener("change", restart);
 
-const solverBtn = document.getElementById("solver")!;
+// const solverBtn = document.getElementById("solver")!;
 
-solverBtn.onclick = () =>
-{
-    // console.log(JSON.stringify(gui.engine));
-    const solver = new Solver(gui.engine);
+// solverBtn.onclick = () =>
+// {
+//     // console.log(JSON.stringify(gui.engine));
+//     const solver = new Solver(gui.engine);
 
-    solver.solveStep(gui);
+//     solver.solveStep(gui);
 
-    gui.erase(false);
-    gui.draw()
+//     gui.erase(false);
+//     gui.draw()
     
-    gui.updateLabels(0);
-    gui.updateLabels(1);
-}
+//     gui.updateLabels(0);
+//     gui.updateLabels(1);
+// }

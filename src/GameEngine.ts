@@ -388,7 +388,7 @@ export class Scoreboard
 {
     static saveBestTime(difficulty: Difficulty, time: number): void
     {
-        const bestTime = Math.min(time, Number.parseInt(localStorage.getItem(difficulty) ?? time.toString()));
+        const bestTime = Math.min(time, Number.parseFloat(localStorage.getItem(difficulty) ?? time.toString()));
         localStorage.setItem(difficulty, bestTime.toString());
     }
 
